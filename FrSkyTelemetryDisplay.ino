@@ -12,10 +12,10 @@
 #define BATTERY_VOLTAGE_MIN 350
 #define BATTERY_VOLTAGE_MAX 430
 #define DISPLAY_MAX_UPDATE_RATE 100
-#define DISPLAY_REVERT_LOGO_TIME 5000
-#define BATTERY_MIN_WARN_LEVEL 250 // Don't warn when battery is below this voltage (/100)
-#define BATTERY_LOW_WARN_LEVEL 330
-#define BATTERY_HIGH_WARN_LEVEL 300
+#define DISPLAY_REVERT_LOGO_TIME 2500
+#define BATTERY_MIN_WARN_LEVEL 100 // Don't warn when battery is below this voltage (/100)
+#define BATTERY_LOW_WARN_LEVEL 340
+#define BATTERY_HIGH_WARN_LEVEL 330
 #define BATTERY_LOW_WARN_DELAY 400
 #define BATTERY_HIGH_WARN_DELAY 200
 
@@ -48,6 +48,8 @@ void setBeeper(uint16_t timing) {
 }
 
 void setup(void) {
+  delay(200);
+
   pinMode(BEEPER_OUTPUT, OUTPUT);
   pinMode(LED_OUTPUT, OUTPUT);
   digitalWrite(LED_OUTPUT, HIGH);
@@ -179,6 +181,7 @@ void loop(void) {
         // Show the logo again if nothing has been received for a while
         drawLogo(bootLogo);
         showingLogo = 1;
+        setBeeper(0);
     }
 }
 
