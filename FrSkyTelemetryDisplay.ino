@@ -5,7 +5,7 @@
 
 #define LED_OUTPUT 13
 #define BEEPER_OUTPUT 4
-#define BATTERY_BAUDRATE 9600
+#define BAUDRATE 9600
 #define BATTERY_ANALOG a2
 #define BATTERY_VALUE_MIN 207
 #define BATTERY_VALUE_MAX 254
@@ -14,8 +14,8 @@
 #define DISPLAY_MAX_UPDATE_RATE 100
 #define DISPLAY_REVERT_LOGO_TIME 2500
 #define BATTERY_MIN_WARN_LEVEL 100 // Don't warn when battery is below this voltage (/100)
-#define BATTERY_LOW_WARN_LEVEL 340
-#define BATTERY_HIGH_WARN_LEVEL 330
+#define BATTERY_LOW_WARN_LEVEL 335
+#define BATTERY_HIGH_WARN_LEVEL 325
 #define BATTERY_LOW_WARN_DELAY 400
 #define BATTERY_HIGH_WARN_DELAY 200
 
@@ -48,40 +48,32 @@ void setBeeper(uint16_t timing) {
 }
 
 void setup(void) {
-  delay(200);
+    delay(200);
 
-  pinMode(BEEPER_OUTPUT, OUTPUT);
-  pinMode(LED_OUTPUT, OUTPUT);
-  digitalWrite(LED_OUTPUT, HIGH);
-  digitalWrite(BEEPER_OUTPUT, HIGH);
+    pinMode(BEEPER_OUTPUT, OUTPUT);
+    pinMode(LED_OUTPUT, OUTPUT);
+    digitalWrite(LED_OUTPUT, HIGH);
+    digitalWrite(BEEPER_OUTPUT, HIGH);
 
-  Serial.begin(BATTERY_BAUDRATE);
-  i2c_init();
-  i2c_OLED_init();
+    Serial.begin(BAUDRATE);
+    i2c_init();
+    i2c_OLED_init();
 
-  clear_display();
-  delay(50);
-  i2c_OLED_send_cmd(0x20);
-  i2c_OLED_send_cmd(0x02);
-  i2c_OLED_send_cmd(0xA6);
+    clear_display();
+    delay(50);
+    i2c_OLED_send_cmd(0x20);
+    i2c_OLED_send_cmd(0x02);
+    i2c_OLED_send_cmd(0xA6);
 
-  drawLogo(bootLogo);
-  showingLogo = 1;
+    drawLogo(bootLogo);
+    showingLogo = 1;
 
-  frsky.setDataHandler(&dataHandler);
-  frsky.setAlarmThresholdHandler(&alarmThresholdHandler);
-  frsky.setUserDataHandler(&userDataHandler);
+    frsky.setDataHandler(&dataHandler);
+    frsky.setAlarmThresholdHandler(&alarmThresholdHandler);
+    frsky.setUserDataHandler(&userDataHandler);
 
-  digitalWrite(LED_OUTPUT, LOW);
-  digitalWrite(BEEPER_OUTPUT, LOW);
-  delay(100);
-  digitalWrite(BEEPER_OUTPUT, HIGH);
-  delay(100);
-  digitalWrite(BEEPER_OUTPUT, LOW);
-  delay(100);
-  digitalWrite(BEEPER_OUTPUT, HIGH);
-  delay(100);
-  digitalWrite(BEEPER_OUTPUT, LOW);
+    digitalWrite(LED_OUTPUT, LOW);
+    digitalWrite(BEEPER_OUTPUT, LOW);
 }
 
 void dataHandler(uint8_t a1, uint8_t a2, uint8_t q1, uint8_t q2) {
@@ -132,6 +124,8 @@ void loop(void) {
     if ((beeperDelay > 0) && ((millis() - beeperTime) > beeperDelay)) {
         beeperState ^= 1;
         digitalWrite(BEEPER_OUTPUT, beeperState ? HIGH : LOW);
+    } else if (beeperDelay == 0) {
+        digitalWrite(BEEPER_OUTPUT, LOW);
     }
 
     static unsigned long lastTime = 0;
@@ -176,6 +170,8 @@ void loop(void) {
             } else {
                 setBeeper(BATTERY_HIGH_WARN_DELAY);
             }
+        } else {
+            setBeeper(0);
         }
     } else if ((!redrawScreen) && ((millis() - lastTime) > DISPLAY_REVERT_LOGO_TIME) && (!showingLogo)) {
         // Show the logo again if nothing has been received for a while
