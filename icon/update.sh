@@ -2,7 +2,9 @@
 
 cd $(dirname $0)/..
 
-echo "// auto generated file, do not edit!" > logo.h
+echo "// file auto-generated with icon/update.sh!" > logo.h
+echo "// DO NOT EDIT BY HAND!" >> logo.h
+echo >> logo.h
 echo "#include <Arduino.h>" >> logo.h
 echo >> logo.h
 

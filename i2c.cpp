@@ -1,3 +1,17 @@
+/*
+ * FrSky Telemetry Display for Arduino
+ *
+ * I2C / TWI Interface
+ * Copied from the OLED library in the HobbyKing shop comments:
+ * http://www.hobbyking.com/hobbyking/store/uploads/121771368X1172162X54.zip
+ *
+ * ----------------------------------------------------------------------------
+ * "THE BEER-WARE LICENSE" (Revision 42):
+ * <xythobuz@xythobuz.de> wrote this file.  As long as you retain this notice
+ * you can do whatever you want with this stuff. If we meet some day, and you
+ * think this stuff is worth it, you can buy me a beer in return.   Thomas Buck
+ * ----------------------------------------------------------------------------
+ */
 #include <avr/io.h>
 #include "i2c.h"
 

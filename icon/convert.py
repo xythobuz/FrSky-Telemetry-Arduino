@@ -59,7 +59,7 @@ print "const PROGMEM uint8_t bootLogo[1024] = {"
 for y in range(64):
     s = "    "
     for x in range(16):
-        s += hex(out[x + (y * 16)])
+        s += "0x{:02X}".format(out[x + (y * 16)])
         if x < 15:
             s += ', '
         elif y < 63:
