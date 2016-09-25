@@ -37,12 +37,14 @@
 
 // When to sound the voltage alarm. Don't warn below MIN_WARN_LEVEL.
 #define BATTERY_MIN_WARN_LEVEL 100
-#define BATTERY_LOW_WARN_LEVEL 325
-#define BATTERY_HIGH_WARN_LEVEL 315
+#define BATTERY_LOW_WARN_LEVEL 327
+#define BATTERY_HIGH_WARN_LEVEL 318
 
-// Time between beeps for different alarm levels (in ms)
-#define BATTERY_LOW_WARN_DELAY 400
-#define BATTERY_HIGH_WARN_DELAY 200
+// Time for beeps for different alarm levels (in ms)
+#define BATTERY_LOW_WARN_OFF 250
+#define BATTERY_LOW_WARN_ON 100
+#define BATTERY_HIGH_WARN_OFF 100
+#define BATTERY_HIGH_WARN_ON 200
 
 FrSky frsky(&Serial);
 uint8_t showingLogo = 0;
@@ -54,15 +56,63 @@ int16_t voltageBattery = 0;
 uint8_t analog1 = 0;
 uint8_t analog2 = 0;
 String userDataString = "";
-uint16_t beeperDelay = 0;
-uint8_t beeperState = 0;
-unsigned long beeperTime = 0;
 
-void setBeeper(uint16_t timing) {
-    beeperDelay = timing;
-    if (timing == 0) {
-        beeperState = 0;
+#define BEEPER_STATE_OFF 0
+#define BEEPER_STATE_LOW 1
+#define BEEPER_STATE_HIGH 2
+uint8_t beeperState = BEEPER_STATE_OFF;
+uint16_t currentBeepTime = 0;
+
+void setBeeper(uint8_t state) {
+    if (state > BEEPER_STATE_HIGH) {
+        return;
+    }
+
+    beeperState = state;
+
+    if (state == BEEPER_STATE_LOW) {
+        currentBeepTime = BATTERY_LOW_WARN_ON;
+    } else if (state == BEEPER_STATE_HIGH) {
+        currentBeepTime = BATTERY_HIGH_WARN_ON;
+    }
+}
+
+void beeperTask(void) {
+    static unsigned long lastBeeperTime = 0;
+    static uint8_t beepState = 0;
+
+    if ((beeperState == BEEPER_STATE_OFF) && (beepState != 0)
+            && ((millis() - lastBeeperTime) >= currentBeepTime)) {
+        // in STATE_OFF, turn beeper off only after the last beep has finished
         digitalWrite(BEEPER_OUTPUT, LOW);
+        beepState = 0;
+        lastBeeperTime = millis();
+    } else if (beeperState == BEEPER_STATE_LOW) {
+        // in STATE_LOW...
+        if ((beepState == 0) && ((millis() - lastBeeperTime) >= BATTERY_LOW_WARN_OFF)) {
+            // ...turn beeper on if it was off long enough
+            digitalWrite(BEEPER_OUTPUT, HIGH);
+            beepState = 1;
+            lastBeeperTime = millis();
+        } else if ((beepState != 0) && ((millis() - lastBeeperTime) >= BATTERY_LOW_WARN_ON)) {
+            // ...turn beeper off if it was on long enough
+            digitalWrite(BEEPER_OUTPUT, LOW);
+            beepState = 0;
+            lastBeeperTime = millis();
+        }
+    } else if (beeperState == BEEPER_STATE_HIGH) {
+        // in STATE_HIGH...
+        if ((beepState == 0) && ((millis() - lastBeeperTime) >= BATTERY_HIGH_WARN_OFF)) {
+            // ...turn beeper on if it was off long enough
+            digitalWrite(BEEPER_OUTPUT, HIGH);
+            beepState = 1;
+            lastBeeperTime = millis();
+        } else if ((beepState != 0) && ((millis() - lastBeeperTime) >= BATTERY_HIGH_WARN_ON)) {
+            // ...turn beeper off if it was on long enough
+            digitalWrite(BEEPER_OUTPUT, LOW);
+            beepState = 0;
+            lastBeeperTime = millis();
+        }
     }
 }
 
@@ -171,12 +221,21 @@ void setup(void) {
 
 void loop(void) {
     frsky.poll();
+    beeperTask();
 
-    if ((beeperDelay > 0) && ((millis() - beeperTime) > beeperDelay)) {
-        beeperState ^= 1;
-        digitalWrite(BEEPER_OUTPUT, beeperState ? HIGH : LOW);
-    } else if (beeperDelay == 0) {
-        digitalWrite(BEEPER_OUTPUT, LOW);
+    if (!showingLogo) {
+        // Enable battery alarm beeper as required
+        if (voltageBattery > BATTERY_MIN_WARN_LEVEL) {
+            if (voltageBattery > BATTERY_LOW_WARN_LEVEL) {
+                setBeeper(BEEPER_STATE_OFF);
+            } else if (voltageBattery > BATTERY_HIGH_WARN_LEVEL) {
+                setBeeper(BEEPER_STATE_LOW);
+            } else {
+                setBeeper(BEEPER_STATE_HIGH);
+            }
+        } else {
+            setBeeper(BEEPER_STATE_OFF);
+        }
     }
 
     static unsigned long lastTime = 0;
@@ -198,24 +257,11 @@ void loop(void) {
         writeLine(5, userDataString);
         writeLine(6, "Battery Volt:");
         writeLine(7, voltageToString(voltageBattery));
-
-        // Enable battery alarm beeper as required
-        if (voltageBattery > BATTERY_MIN_WARN_LEVEL) {
-            if (voltageBattery > BATTERY_LOW_WARN_LEVEL) {
-                setBeeper(0);
-            } else if (voltageBattery > BATTERY_HIGH_WARN_LEVEL) {
-                setBeeper(BATTERY_LOW_WARN_DELAY);
-            } else {
-                setBeeper(BATTERY_HIGH_WARN_DELAY);
-            }
-        } else {
-            setBeeper(0);
-        }
     } else if ((!redrawScreen) && ((millis() - lastTime) > DISPLAY_REVERT_LOGO_TIME) && (!showingLogo)) {
         // Show the logo again if nothing has been received for a while
         drawLogo(bootLogo);
         showingLogo = 1;
-        setBeeper(0);
+        setBeeper(BEEPER_STATE_OFF);
     }
 }
 
