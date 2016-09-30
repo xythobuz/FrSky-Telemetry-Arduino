@@ -15,8 +15,7 @@
 #include "oled.h"
 #include "frsky.h"
 #include "logo.h"
-
-#include <EEPROM.h>
+#include "config.h"
 
 // Using TimerOne out of lazyness to allow simple fast LED PWM on any pin
 // http://playground.arduino.cc/Code/Timer1
@@ -82,9 +81,6 @@
 #define MENU_STATE_MAIN 1
 #define MENU_STATE_WARNING 2
 #define MENU_STATE_ALARM 3
-
-#define CONFIG_STRING_LENGTH 6
-const char versionString[CONFIG_STRING_LENGTH] = "1.1.0";
 
 FrSky frsky(&Serial);
 uint8_t showingLogo = 0;
@@ -161,57 +157,6 @@ void beeperTask(void) {
             setLED(0);
         }
     }
-}
-
-struct ConfigData {
-    int16_t warningVoltage, alarmVoltage;
-    char versionString[CONFIG_STRING_LENGTH];
-};
-
-#define CONFIG_DATA_LENGTH (sizeof(ConfigData))
-
-void readConfig() {
-    ConfigData d;
-    uint8_t *buffer = (uint8_t *)((void *)&d);
-    uint8_t checksum = 0;
-    for (int i = 0; i < CONFIG_DATA_LENGTH; i++) {
-        buffer[i] = EEPROM.read(i);
-        checksum ^= buffer[i];
-    }
-
-    uint8_t storedSum = EEPROM.read(CONFIG_DATA_LENGTH);
-    if (storedSum == checksum) {
-        uint8_t match = 1;
-        for (int i = 0; i < CONFIG_STRING_LENGTH; i++) {
-            if (d.versionString[i] != versionString[i]) {
-                match = 0;
-                break;
-            }
-        }
-
-        if (match) {
-            warningVoltage = d.warningVoltage;
-            alarmVoltage = d.alarmVoltage;
-        }
-    }
-}
-
-void writeConfig() {
-    ConfigData d;
-    d.warningVoltage = warningVoltage;
-    d.alarmVoltage = alarmVoltage;
-    for (int i = 0; i < CONFIG_STRING_LENGTH; i++) {
-        d.versionString[i] = versionString[i];
-    }
-
-    uint8_t checksum = 0;
-    const uint8_t *buffer = (const uint8_t *)((const void *)&d);
-    for (int i = 0; i < CONFIG_DATA_LENGTH; i++) {
-        EEPROM.write(i, buffer[i]);
-        checksum ^= buffer[i];
-    }
-
-    EEPROM.write(CONFIG_DATA_LENGTH, checksum);
 }
 
 uint8_t drawMainMenu(uint8_t input) {
