@@ -1,7 +1,7 @@
 /*
  * FrSky Telemetry Display for Arduino
  *
- * EEPROM Config Storage
+ * On Screen Menu
  * Copyright 2016 by Thomas Buck <xythobuz@xythobuz.de>
  *
  * ----------------------------------------------------------------------------
@@ -11,21 +11,14 @@
  * think this stuff is worth it, you can buy me a beer in return.   Thomas Buck
  * ----------------------------------------------------------------------------
  */
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef __MENU_H__
+#define __MENU_H__
 
-#define CONFIG_STRING_LENGTH 6
-const char versionString[CONFIG_STRING_LENGTH] = "1.1.0";
+#define MENU_NONE 0
+#define MENU_NEXT 1
+#define MENU_OK 2
 
-struct ConfigData {
-    int16_t warningVoltage, alarmVoltage;
-    char versionString[CONFIG_STRING_LENGTH];
-};
-
-#define CONFIG_DATA_LENGTH (sizeof(ConfigData))
-
-void readConfig(void);
-void writeConfig(void);
+void drawMenu(uint8_t input);
 
 #endif
 

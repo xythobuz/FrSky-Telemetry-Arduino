@@ -1,7 +1,7 @@
 /*
  * FrSky Telemetry Display for Arduino
  *
- * EEPROM Config Storage
+ * Pushbutton debouncing helper class
  * Copyright 2016 by Thomas Buck <xythobuz@xythobuz.de>
  *
  * ----------------------------------------------------------------------------
@@ -11,21 +11,20 @@
  * think this stuff is worth it, you can buy me a beer in return.   Thomas Buck
  * ----------------------------------------------------------------------------
  */
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef __DEBOUNCE_H__
+#define __DEBOUNCE_H__
 
-#define CONFIG_STRING_LENGTH 6
-const char versionString[CONFIG_STRING_LENGTH] = "1.1.0";
+class Debouncer {
+  public:
+    Debouncer(int p);
+    int poll();
 
-struct ConfigData {
-    int16_t warningVoltage, alarmVoltage;
-    char versionString[CONFIG_STRING_LENGTH];
+  private:
+    int pin;
+    int currentState;
+    int lastState;
+    unsigned long lastTime;
 };
-
-#define CONFIG_DATA_LENGTH (sizeof(ConfigData))
-
-void readConfig(void);
-void writeConfig(void);
 
 #endif
 

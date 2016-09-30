@@ -61,3 +61,4 @@ void writeConfig(void) {
 
     EEPROM.write(CONFIG_DATA_LENGTH, checksum);
 }
+

@@ -12,9 +12,22 @@
  * think this stuff is worth it, you can buy me a beer in return.   Thomas Buck
  * ----------------------------------------------------------------------------
  */
+#include <Arduino.h>
 #include "i2c.h"
 #include "oled.h"
 #include "font.h"
+
+void writeLine(int l, String s) {
+    setXY(l, 0);
+    sendStr(s.c_str());
+
+    // Fill rest of line with whitespace so there are no wrong stale characters
+    String whitespace;
+    for (int i = s.length(); i < 16; i++) {
+        whitespace += ' ';
+    }
+    sendStr(whitespace.c_str());
+}
 
 void drawLogo(const uint8_t *logo) {
     for (uint8_t k = 0; k < 8; k++) {

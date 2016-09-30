@@ -1,7 +1,7 @@
 /*
  * FrSky Telemetry Display for Arduino
  *
- * EEPROM Config Storage
+ * Beeper handling utility
  * Copyright 2016 by Thomas Buck <xythobuz@xythobuz.de>
  *
  * ----------------------------------------------------------------------------
@@ -11,21 +11,15 @@
  * think this stuff is worth it, you can buy me a beer in return.   Thomas Buck
  * ----------------------------------------------------------------------------
  */
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef __BEEPER_H__
+#define __BEEPER_H__
 
-#define CONFIG_STRING_LENGTH 6
-const char versionString[CONFIG_STRING_LENGTH] = "1.1.0";
+#define BEEPER_STATE_OFF 0
+#define BEEPER_STATE_LOW 1
+#define BEEPER_STATE_HIGH 2
 
-struct ConfigData {
-    int16_t warningVoltage, alarmVoltage;
-    char versionString[CONFIG_STRING_LENGTH];
-};
-
-#define CONFIG_DATA_LENGTH (sizeof(ConfigData))
-
-void readConfig(void);
-void writeConfig(void);
+void setBeeper(uint8_t state);
+void beeperTask(void);
 
 #endif
 

@@ -18,6 +18,7 @@
 void clear_display(void);
 void setXY(uint8_t row, uint8_t col);
 void sendStr(const char *string);
+void writeLine(int l, String s);
 void drawLogo(const uint8_t *logo);
 
 void i2c_OLED_init(void);

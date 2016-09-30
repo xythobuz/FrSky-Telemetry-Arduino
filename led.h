@@ -1,7 +1,7 @@
 /*
  * FrSky Telemetry Display for Arduino
  *
- * EEPROM Config Storage
+ * LED PWM
  * Copyright 2016 by Thomas Buck <xythobuz@xythobuz.de>
  *
  * ----------------------------------------------------------------------------
@@ -11,21 +11,11 @@
  * think this stuff is worth it, you can buy me a beer in return.   Thomas Buck
  * ----------------------------------------------------------------------------
  */
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
+#ifndef __LED_H__
+#define __LED_H__
 
-#define CONFIG_STRING_LENGTH 6
-const char versionString[CONFIG_STRING_LENGTH] = "1.1.0";
-
-struct ConfigData {
-    int16_t warningVoltage, alarmVoltage;
-    char versionString[CONFIG_STRING_LENGTH];
-};
-
-#define CONFIG_DATA_LENGTH (sizeof(ConfigData))
-
-void readConfig(void);
-void writeConfig(void);
+void initLED(void);
+void setLED(uint8_t v);
 
 #endif
 
