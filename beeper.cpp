@@ -16,6 +16,8 @@
 #include "options.h"
 #include "led.h"
 
+extern uint8_t ledBrightness;
+
 uint8_t beeperState = BEEPER_STATE_OFF;
 uint16_t currentBeepTime = 0;
 
@@ -51,7 +53,7 @@ void beeperTask(void) {
             tone(BEEPER_OUTPUT, BATTERY_LOW_FREQ);
             beepState = 1;
             lastBeeperTime = millis();
-            setLED(LED_PWM);
+            setLED(ledBrightness);
         } else if ((beepState != 0) && ((millis() - lastBeeperTime) >= BATTERY_LOW_WARN_ON)) {
             // ...turn beeper off if it was on long enough
             noTone(BEEPER_OUTPUT);
@@ -66,7 +68,7 @@ void beeperTask(void) {
             tone(BEEPER_OUTPUT, BATTERY_HIGH_FREQ);
             beepState = 1;
             lastBeeperTime = millis();
-            setLED(LED_PWM);
+            setLED(ledBrightness);
         } else if ((beepState != 0) && ((millis() - lastBeeperTime) >= BATTERY_HIGH_WARN_ON)) {
             // ...turn beeper off if it was on long enough
             noTone(BEEPER_OUTPUT);

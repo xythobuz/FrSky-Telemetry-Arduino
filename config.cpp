@@ -14,9 +14,11 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include "config.h"
+#include "led.h"
 
 extern int16_t warningVoltage;
 extern int16_t alarmVoltage;
+extern uint8_t ledBrightness;
 
 void readConfig(void) {
     ConfigData d;
@@ -40,14 +42,18 @@ void readConfig(void) {
         if (match) {
             warningVoltage = d.warningVoltage;
             alarmVoltage = d.alarmVoltage;
+            ledBrightness = d.ledBrightness;
         }
     }
 }
 
 void writeConfig(void) {
+    setLED(ledBrightness);
+
     ConfigData d;
     d.warningVoltage = warningVoltage;
     d.alarmVoltage = alarmVoltage;
+    d.ledBrightness = ledBrightness;
     for (int i = 0; i < CONFIG_STRING_LENGTH; i++) {
         d.versionString[i] = versionString[i];
     }
@@ -60,5 +66,7 @@ void writeConfig(void) {
     }
 
     EEPROM.write(CONFIG_DATA_LENGTH, checksum);
+
+    setLED(0);
 }
 

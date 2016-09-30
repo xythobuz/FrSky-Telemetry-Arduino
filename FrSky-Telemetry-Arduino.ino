@@ -33,6 +33,7 @@ uint8_t analog2 = 0;
 String userDataString = "";
 int16_t warningVoltage = BATTERY_LOW_WARN_LEVEL;
 int16_t alarmVoltage = BATTERY_HIGH_WARN_LEVEL;
+uint8_t ledBrightness = LED_PWM;
 
 // Print battery voltage with dot (-402 -> -4.02V)
 String voltageToString(int16_t voltage) {
@@ -53,11 +54,12 @@ String voltageToString(int16_t voltage) {
 void drawInfoScreen(void) {
     writeLine(0, "FrSky Telemetry");
     writeLine(1, "Version: " + String(versionString));
-    writeLine(2, "by xythobuz");
-    writeLine(3, "Warning Volt:");
-    writeLine(4, voltageToString(warningVoltage));
-    writeLine(5, "Alarm Volt:");
-    writeLine(6, voltageToString(alarmVoltage));
+    writeLine(2, "Patch Level: " + String(PATCH_LEVEL_STRING));
+    writeLine(3, "by xythobuz.de");
+    writeLine(4, "Warning Volt:");
+    writeLine(5, voltageToString(warningVoltage));
+    writeLine(6, "Alarm Volt:");
+    writeLine(7, voltageToString(alarmVoltage));
 }
 
 void dataHandler(uint8_t a1, uint8_t a2, uint8_t q1, uint8_t q2) {
@@ -96,7 +98,7 @@ void setup(void) {
     tone(BEEPER_OUTPUT, INIT_FREQ);
 
     initLED();
-    setLED(LED_PWM);
+    setLED(ledBrightness);
 
     Serial.begin(BAUDRATE);
     i2c_init();
@@ -121,7 +123,7 @@ void setup(void) {
     frsky.setAlarmThresholdHandler(&alarmThresholdHandler);
     frsky.setUserDataHandler(&userDataHandler);
 
-    setLED(LED_PWM);
+    setLED(ledBrightness);
     tone(BEEPER_OUTPUT, INIT_FREQ);
     delay(100);
     noTone(BEEPER_OUTPUT);
@@ -171,10 +173,13 @@ void loop(void) {
         drawLogo(bootLogo);
         showingLogo = 2;
 
-        // Beep once when we lost the connection
-        setBeeper(BEEPER_STATE_HIGH);
+        // Beep twice when we lost the connection
+        setBeeper(BEEPER_STATE_LOW);
         lastTime = millis();
-    } else if ((showingLogo == 2) && ((millis() - lastTime) > BATTERY_HIGH_WARN_ON)) {
+    } else if ((showingLogo == 2) && ((millis() - lastTime) > BATTERY_LOW_WARN_ON)) {
+        showingLogo = 3;
+        setBeeper(BEEPER_STATE_HIGH);
+    } else if ((showingLogo == 3) && ((millis() - lastTime) > BATTERY_HIGH_WARN_ON)) {
         // Turn beeper off again after losing connection
         setBeeper(BEEPER_STATE_OFF);
         showingLogo = 1;

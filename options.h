@@ -19,8 +19,12 @@
 #define BEEPER_OUTPUT 4
 #define S1_INPUT 8
 #define S2_INPUT 9
+
+// FrSky Telemetry Baudrate
 #define BAUDRATE 9600
-#define LED_PWM 25
+
+// Default LED PWM Timer values
+#define LED_PWM 15
 #define TIMER_FREQUENCY 50
 
 // How to calculate battery voltage from analog value (a1 or a2)
@@ -31,8 +35,8 @@
 #define BATTERY_VOLTAGE_MIN 350
 #define BATTERY_VOLTAGE_MAX 430
 
-// How often to refresh display (in ms)
-#define DISPLAY_MAX_UPDATE_RATE 100
+// How often to refresh display at most (in ms)
+#define DISPLAY_MAX_UPDATE_RATE 10
 
 // How long until logo is shown when no data is received (in ms)
 #define DISPLAY_REVERT_LOGO_TIME 2500
@@ -41,7 +45,7 @@
 // When to sound the voltage alarm. Don't warn below MIN_WARN_LEVEL.
 #define BATTERY_MIN_WARN_LEVEL 100
 #define BATTERY_LOW_WARN_LEVEL 327
-#define BATTERY_HIGH_WARN_LEVEL 318
+#define BATTERY_HIGH_WARN_LEVEL 322
 
 // Time for beeps for different alarm levels (in ms)
 #define BATTERY_LOW_WARN_OFF 250
@@ -59,8 +63,12 @@
 
 // How much you're able to change the alarm/warn voltage in the menu
 #define MENU_ALARM_INC 1
-#define MENU_ALARM_MIN 310
+#define MENU_ALARM_MIN 315
 #define MENU_ALARM_MAX 335
+
+#define MENU_BRIGHT_INC 1
+#define MENU_BRIGHT_MIN 1
+#define MENU_BRIGHT_MAX 25
 
 #endif
 

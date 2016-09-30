@@ -22,19 +22,21 @@
 #define MENU_STATE_MAIN 1
 #define MENU_STATE_WARNING 2
 #define MENU_STATE_ALARM 3
+#define MENU_STATE_BRIGHT 4
+#define MENU_STATES 5
 
 extern int16_t warningVoltage;
 extern int16_t alarmVoltage;
+extern uint8_t ledBrightness;
+
 String voltageToString(int16_t voltage);
 
 uint8_t drawMainMenu(uint8_t input) {
     static uint8_t index = 0;
 
     if (input == MENU_NEXT) {
-        if (index == 0) {
-            index = 1;
-        } else if (index == 1) {
-            index = 2;
+        if (index < (MENU_STATES - 2)) {
+            index++;
         } else {
             index = 0;
         }
@@ -49,7 +51,8 @@ uint8_t drawMainMenu(uint8_t input) {
     writeLine(2, "Configuration:");
     writeLine(4, ((index == 0) ? String("*") : String(" ")) + " Warning Volt");
     writeLine(5, ((index == 1) ? String("*") : String(" ")) + " Alarm Volt");
-    writeLine(6, ((index == 2) ? String("*") : String(" ")) + " Exit Menu");
+    writeLine(6, ((index == 2) ? String("*") : String(" ")) + " LED Brightness");
+    writeLine(7, ((index == 3) ? String("*") : String(" ")) + " Exit Menu");
 
     return 0;
 }
@@ -104,10 +107,36 @@ uint8_t drawAlarmMenu(uint8_t input) {
     return 0;
 }
 
+uint8_t drawBrightMenu(uint8_t input) {
+    static uint8_t startValue = 0;
+
+    if (input == MENU_NEXT) {
+        if (ledBrightness < MENU_BRIGHT_MAX) {
+            ledBrightness += MENU_BRIGHT_INC;
+        } else {
+            ledBrightness = MENU_BRIGHT_MIN;
+        }
+    } else if (input == MENU_OK) {
+        if (ledBrightness != startValue) {
+            writeConfig();
+        }
+        return 1;
+    } else if (input == MENU_NONE) {
+        startValue = ledBrightness;
+    }
+
+    clear_display();
+    writeLine(1, "FrSky Telemetry");
+    writeLine(2, "LED Brightness:");
+    writeLine(5, "1 / " + String(ledBrightness));
+    return 0;
+}
+
 void drawMenu(uint8_t input) {
     static uint8_t state = MENU_STATE_NONE;
 
     if (state == MENU_STATE_NONE) {
+        // Only allow 'ok' to enter menu from logo
         if (input == MENU_OK) {
             state = MENU_STATE_MAIN;
             input = MENU_NONE;
@@ -115,23 +144,33 @@ void drawMenu(uint8_t input) {
     }
 
     if (state == MENU_STATE_MAIN) {
+        // Draw Main Menu
         uint8_t r = drawMainMenu(input);
-        if ((r > 0) && (r < 3)) {
-            state = (r == 1) ? MENU_STATE_WARNING : MENU_STATE_ALARM;
+        if ((r > 0) && (r < (MENU_STATES - 1))) {
+            // Enter next state but discard current input
+            state = r + 1;
             input = MENU_NONE;
         } else if (r > 0) {
+            // Return to logo
             state = MENU_STATE_NONE;
             drawLogo(bootLogo);
         }
     }
 
     if (state == MENU_STATE_WARNING) {
+        // Draw submenu
         if (drawWarningMenu(input)) {
+            // Return to main menu but discard current input
             state = MENU_STATE_MAIN;
             drawMainMenu(MENU_NONE);
         }
     } else if (state == MENU_STATE_ALARM) {
         if (drawAlarmMenu(input)) {
+            state = MENU_STATE_MAIN;
+            drawMainMenu(MENU_NONE);
+        }
+    } else if (state == MENU_STATE_BRIGHT) {
+        if (drawBrightMenu(input)) {
             state = MENU_STATE_MAIN;
             drawMainMenu(MENU_NONE);
         }
