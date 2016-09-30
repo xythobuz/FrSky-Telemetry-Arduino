@@ -16,10 +16,20 @@
 #include "frsky.h"
 #include "logo.h"
 
+#include <EEPROM.h>
+
+// Using TimerOne out of lazyness to allow simple fast LED PWM on any pin
+// http://playground.arduino.cc/Code/Timer1
+#include <TimerOne.h>
+
 // Hardware configuration
-#define LED_OUTPUT 13
+#define LED_OUTPUT 3
 #define BEEPER_OUTPUT 4
+#define S1_INPUT 8
+#define S2_INPUT 9
 #define BAUDRATE 9600
+#define LED_PWM 25
+#define TIMER_FREQUENCY 50
 
 // How to calculate battery voltage from analog value (a1 or a2)
 // Voltage is stored with factor 100, so 430 -> 4.30V
@@ -34,6 +44,7 @@
 
 // How long until logo is shown when no data is received (in ms)
 #define DISPLAY_REVERT_LOGO_TIME 2500
+#define DISPLAY_SHOW_INFO_SCREEN 1500
 
 // When to sound the voltage alarm. Don't warn below MIN_WARN_LEVEL.
 #define BATTERY_MIN_WARN_LEVEL 100
@@ -46,9 +57,37 @@
 #define BATTERY_HIGH_WARN_OFF 100
 #define BATTERY_HIGH_WARN_ON 200
 
+// Frequency for different buzzer sounds (in hz)
+#define INIT_FREQ 440
+#define BATTERY_LOW_FREQ 500
+#define BATTERY_HIGH_FREQ 1500
+
+// Software debounce time for switches (in ms)
+#define DEBOUNCE_DELAY 50
+
+// How much you're able to change the alarm/warn voltage in the menu
+#define MENU_ALARM_INC 1
+#define MENU_ALARM_MIN 310
+#define MENU_ALARM_MAX 335
+
+#define BEEPER_STATE_OFF 0
+#define BEEPER_STATE_LOW 1
+#define BEEPER_STATE_HIGH 2
+
+#define MENU_NONE 0
+#define MENU_NEXT 1
+#define MENU_OK 2
+
+#define MENU_STATE_NONE 0
+#define MENU_STATE_MAIN 1
+#define MENU_STATE_WARNING 2
+#define MENU_STATE_ALARM 3
+
+#define CONFIG_STRING_LENGTH 6
+const char versionString[CONFIG_STRING_LENGTH] = "1.1.0";
+
 FrSky frsky(&Serial);
 uint8_t showingLogo = 0;
-uint8_t ledState = 0;
 uint8_t redrawScreen = 0;
 int16_t rssiRx = 0;
 int16_t rssiTx = 0;
@@ -56,12 +95,15 @@ int16_t voltageBattery = 0;
 uint8_t analog1 = 0;
 uint8_t analog2 = 0;
 String userDataString = "";
-
-#define BEEPER_STATE_OFF 0
-#define BEEPER_STATE_LOW 1
-#define BEEPER_STATE_HIGH 2
 uint8_t beeperState = BEEPER_STATE_OFF;
 uint16_t currentBeepTime = 0;
+volatile uint8_t ledValue = 0;
+int16_t warningVoltage = BATTERY_LOW_WARN_LEVEL;
+int16_t alarmVoltage = BATTERY_HIGH_WARN_LEVEL;
+
+void setLED(uint8_t v) {
+    ledValue = v;
+}
 
 void setBeeper(uint8_t state) {
     if (state > BEEPER_STATE_HIGH) {
@@ -84,34 +126,201 @@ void beeperTask(void) {
     if ((beeperState == BEEPER_STATE_OFF) && (beepState != 0)
             && ((millis() - lastBeeperTime) >= currentBeepTime)) {
         // in STATE_OFF, turn beeper off only after the last beep has finished
-        digitalWrite(BEEPER_OUTPUT, LOW);
+        noTone(BEEPER_OUTPUT);
         beepState = 0;
         lastBeeperTime = millis();
+        setLED(0);
     } else if (beeperState == BEEPER_STATE_LOW) {
         // in STATE_LOW...
         if ((beepState == 0) && ((millis() - lastBeeperTime) >= BATTERY_LOW_WARN_OFF)) {
             // ...turn beeper on if it was off long enough
-            digitalWrite(BEEPER_OUTPUT, HIGH);
+            tone(BEEPER_OUTPUT, BATTERY_LOW_FREQ);
             beepState = 1;
             lastBeeperTime = millis();
+            setLED(LED_PWM);
         } else if ((beepState != 0) && ((millis() - lastBeeperTime) >= BATTERY_LOW_WARN_ON)) {
             // ...turn beeper off if it was on long enough
-            digitalWrite(BEEPER_OUTPUT, LOW);
+            noTone(BEEPER_OUTPUT);
             beepState = 0;
             lastBeeperTime = millis();
+            setLED(0);
         }
     } else if (beeperState == BEEPER_STATE_HIGH) {
         // in STATE_HIGH...
         if ((beepState == 0) && ((millis() - lastBeeperTime) >= BATTERY_HIGH_WARN_OFF)) {
             // ...turn beeper on if it was off long enough
-            digitalWrite(BEEPER_OUTPUT, HIGH);
+            tone(BEEPER_OUTPUT, BATTERY_HIGH_FREQ);
             beepState = 1;
             lastBeeperTime = millis();
+            setLED(LED_PWM);
         } else if ((beepState != 0) && ((millis() - lastBeeperTime) >= BATTERY_HIGH_WARN_ON)) {
             // ...turn beeper off if it was on long enough
-            digitalWrite(BEEPER_OUTPUT, LOW);
+            noTone(BEEPER_OUTPUT);
             beepState = 0;
             lastBeeperTime = millis();
+            setLED(0);
+        }
+    }
+}
+
+struct ConfigData {
+    int16_t warningVoltage, alarmVoltage;
+    char versionString[CONFIG_STRING_LENGTH];
+};
+
+#define CONFIG_DATA_LENGTH (sizeof(ConfigData))
+
+void readConfig() {
+    ConfigData d;
+    uint8_t *buffer = (uint8_t *)((void *)&d);
+    uint8_t checksum = 0;
+    for (int i = 0; i < CONFIG_DATA_LENGTH; i++) {
+        buffer[i] = EEPROM.read(i);
+        checksum ^= buffer[i];
+    }
+
+    uint8_t storedSum = EEPROM.read(CONFIG_DATA_LENGTH);
+    if (storedSum == checksum) {
+        uint8_t match = 1;
+        for (int i = 0; i < CONFIG_STRING_LENGTH; i++) {
+            if (d.versionString[i] != versionString[i]) {
+                match = 0;
+                break;
+            }
+        }
+
+        if (match) {
+            warningVoltage = d.warningVoltage;
+            alarmVoltage = d.alarmVoltage;
+        }
+    }
+}
+
+void writeConfig() {
+    ConfigData d;
+    d.warningVoltage = warningVoltage;
+    d.alarmVoltage = alarmVoltage;
+    for (int i = 0; i < CONFIG_STRING_LENGTH; i++) {
+        d.versionString[i] = versionString[i];
+    }
+
+    uint8_t checksum = 0;
+    const uint8_t *buffer = (const uint8_t *)((const void *)&d);
+    for (int i = 0; i < CONFIG_DATA_LENGTH; i++) {
+        EEPROM.write(i, buffer[i]);
+        checksum ^= buffer[i];
+    }
+
+    EEPROM.write(CONFIG_DATA_LENGTH, checksum);
+}
+
+uint8_t drawMainMenu(uint8_t input) {
+    static uint8_t index = 0;
+
+    if (input == MENU_NEXT) {
+        if (index == 0) {
+            index = 1;
+        } else if (index == 1) {
+            index = 2;
+        } else {
+            index = 0;
+        }
+    } else if (input == MENU_OK) {
+        uint8_t r = index + 1;
+        index = 0;
+        return r;
+    }
+
+    clear_display();
+    writeLine(1, "FrSky Telemetry");
+    writeLine(2, "Configuration:");
+    writeLine(4, ((index == 0) ? String("*") : String(" ")) + " Warning Volt");
+    writeLine(5, ((index == 1) ? String("*") : String(" ")) + " Alarm Volt");
+    writeLine(6, ((index == 2) ? String("*") : String(" ")) + " Exit Menu");
+
+    return 0;
+}
+
+uint8_t drawWarningMenu(uint8_t input) {
+    static int16_t startValue = 0;
+
+    if (input == MENU_NEXT) {
+        if (warningVoltage < MENU_ALARM_MAX) {
+            warningVoltage += MENU_ALARM_INC;
+        } else {
+            warningVoltage = MENU_ALARM_MIN;
+        }
+    } else if (input == MENU_OK) {
+        if (warningVoltage != startValue) {
+            writeConfig();
+        }
+        return 1;
+    } else if (input == MENU_NONE) {
+        startValue = warningVoltage;
+    }
+
+    clear_display();
+    writeLine(1, "FrSky Telemetry");
+    writeLine(2, "Warning Volt:");
+    writeLine(5, voltageToString(warningVoltage));
+    return 0;
+}
+
+uint8_t drawAlarmMenu(uint8_t input) {
+    static int16_t startValue = 0;
+
+    if (input == MENU_NEXT) {
+        if (alarmVoltage < MENU_ALARM_MAX) {
+            alarmVoltage += MENU_ALARM_INC;
+        } else {
+            alarmVoltage = MENU_ALARM_MIN;
+        }
+    } else if (input == MENU_OK) {
+        if (alarmVoltage != startValue) {
+            writeConfig();
+        }
+        return 1;
+    } else if (input == MENU_NONE) {
+        startValue = alarmVoltage;
+    }
+
+    clear_display();
+    writeLine(1, "FrSky Telemetry");
+    writeLine(2, "Alarm Volt:");
+    writeLine(5, voltageToString(alarmVoltage));
+    return 0;
+}
+
+void drawMenu(uint8_t input) {
+    static uint8_t state = MENU_STATE_NONE;
+
+    if (state == MENU_STATE_NONE) {
+        if (input == MENU_OK) {
+            state = MENU_STATE_MAIN;
+            input = MENU_NONE;
+        }
+    }
+
+    if (state == MENU_STATE_MAIN) {
+        uint8_t r = drawMainMenu(input);
+        if ((r > 0) && (r < 3)) {
+            state = (r == 1) ? MENU_STATE_WARNING : MENU_STATE_ALARM;
+            input = MENU_NONE;
+        } else if (r > 0) {
+            state = MENU_STATE_NONE;
+            drawLogo(bootLogo);
+        }
+    }
+
+    if (state == MENU_STATE_WARNING) {
+        if (drawWarningMenu(input)) {
+            state = MENU_STATE_MAIN;
+            drawMainMenu(MENU_NONE);
+        }
+    } else if (state == MENU_STATE_ALARM) {
+        if (drawAlarmMenu(input)) {
+            state = MENU_STATE_MAIN;
+            drawMainMenu(MENU_NONE);
         }
     }
 }
@@ -146,17 +355,15 @@ String voltageToString(int16_t voltage) {
 
 void drawInfoScreen(void) {
     writeLine(0, "FrSky Telemetry");
-    writeLine(1, "Version: 1.0.1");
+    writeLine(1, "Version: " + String(versionString));
     writeLine(2, "by xythobuz");
     writeLine(3, "Warning Volt:");
-    writeLine(4, voltageToString(BATTERY_LOW_WARN_LEVEL));
+    writeLine(4, voltageToString(warningVoltage));
     writeLine(5, "Alarm Volt:");
-    writeLine(6, voltageToString(BATTERY_HIGH_WARN_LEVEL));
+    writeLine(6, voltageToString(alarmVoltage));
 }
 
 void dataHandler(uint8_t a1, uint8_t a2, uint8_t q1, uint8_t q2) {
-    ledState ^= 1;
-    digitalWrite(LED_OUTPUT, ledState ? HIGH : LOW);
     redrawScreen = 1;
 
     rssiRx = map(q1, 0, 255, 0, 100);
@@ -168,13 +375,9 @@ void dataHandler(uint8_t a1, uint8_t a2, uint8_t q1, uint8_t q2) {
 }
 
 void alarmThresholdHandler(FrSky::AlarmThreshold alarm) {
-    ledState ^= 1;
-    digitalWrite(LED_OUTPUT, ledState ? HIGH : LOW);
 }
 
 void userDataHandler(const uint8_t* buf, uint8_t len) {
-    ledState ^= 1;
-    digitalWrite(LED_OUTPUT, ledState ? HIGH : LOW);
     redrawScreen = 1;
 
     String s;
@@ -184,13 +387,35 @@ void userDataHandler(const uint8_t* buf, uint8_t len) {
     userDataString = s;
 }
 
+void timerInterrupt(void) {
+    static uint8_t count = 0;
+    static uint8_t ledState = 0;
+    if (ledState || (ledValue == 0)) {
+        ledState = 0;
+    } else {
+        count++;
+        if (count >= ledValue) {
+            count = 0;
+            ledState ^= 1;
+        }
+    }
+    digitalWrite(LED_OUTPUT, ledState ? HIGH : LOW);
+}
+
 void setup(void) {
     delay(200);
 
     pinMode(BEEPER_OUTPUT, OUTPUT);
     pinMode(LED_OUTPUT, OUTPUT);
-    digitalWrite(LED_OUTPUT, HIGH);
-    digitalWrite(BEEPER_OUTPUT, HIGH);
+    pinMode(S1_INPUT, INPUT);
+    pinMode(S2_INPUT, INPUT);
+    digitalWrite(S1_INPUT, HIGH);
+    digitalWrite(S2_INPUT, HIGH);
+    tone(BEEPER_OUTPUT, INIT_FREQ);
+
+    Timer1.initialize();
+    Timer1.attachInterrupt(timerInterrupt, TIMER_FREQUENCY);
+    setLED(LED_PWM);
 
     Serial.begin(BAUDRATE);
     i2c_init();
@@ -202,9 +427,11 @@ void setup(void) {
     i2c_OLED_send_cmd(0x02);
     i2c_OLED_send_cmd(0xA6);
 
+    readConfig();
     drawInfoScreen();
-    digitalWrite(BEEPER_OUTPUT, LOW);
-    delay(DISPLAY_REVERT_LOGO_TIME);
+    noTone(BEEPER_OUTPUT);
+    setLED(0);
+    delay(DISPLAY_SHOW_INFO_SCREEN);
 
     drawLogo(bootLogo);
     showingLogo = 1;
@@ -213,11 +440,44 @@ void setup(void) {
     frsky.setAlarmThresholdHandler(&alarmThresholdHandler);
     frsky.setUserDataHandler(&userDataHandler);
 
-    digitalWrite(BEEPER_OUTPUT, HIGH);
+    setLED(LED_PWM);
+    tone(BEEPER_OUTPUT, INIT_FREQ);
     delay(100);
-    digitalWrite(BEEPER_OUTPUT, LOW);
-    digitalWrite(LED_OUTPUT, LOW);
+    noTone(BEEPER_OUTPUT);
+    setLED(0);
 }
+
+class Debouncer {
+  public:
+    Debouncer(int p) : pin(p), currentState(0), lastState(0), lastTime(0) { }
+
+    int poll() {
+        int ret = 0;
+        int state = digitalRead(pin);
+        
+        if (state != lastState) {
+            lastTime = millis();
+        }
+
+        if ((millis() - lastTime) > DEBOUNCE_DELAY) {
+            if (state != currentState) {
+                currentState = state;
+                if (currentState == LOW) {
+                    ret = 1;
+                }
+            }
+        }
+
+        lastState = state;
+        return ret;
+    }
+
+  private:
+    int pin;
+    int currentState;
+    int lastState;
+    unsigned long lastTime;
+};
 
 void loop(void) {
     frsky.poll();
@@ -226,9 +486,9 @@ void loop(void) {
     if (!showingLogo) {
         // Enable battery alarm beeper as required
         if (voltageBattery > BATTERY_MIN_WARN_LEVEL) {
-            if (voltageBattery > BATTERY_LOW_WARN_LEVEL) {
+            if (voltageBattery > warningVoltage) {
                 setBeeper(BEEPER_STATE_OFF);
-            } else if (voltageBattery > BATTERY_HIGH_WARN_LEVEL) {
+            } else if (voltageBattery > alarmVoltage) {
                 setBeeper(BEEPER_STATE_LOW);
             } else {
                 setBeeper(BEEPER_STATE_HIGH);
@@ -260,8 +520,26 @@ void loop(void) {
     } else if ((!redrawScreen) && ((millis() - lastTime) > DISPLAY_REVERT_LOGO_TIME) && (!showingLogo)) {
         // Show the logo again if nothing has been received for a while
         drawLogo(bootLogo);
-        showingLogo = 1;
+        showingLogo = 2;
+
+        // Beep once when we lost the connection
+        setBeeper(BEEPER_STATE_HIGH);
+        lastTime = millis();
+    } else if ((showingLogo == 2) && ((millis() - lastTime) > BATTERY_HIGH_WARN_ON)) {
+        // Turn beeper off again after losing connection
         setBeeper(BEEPER_STATE_OFF);
+        showingLogo = 1;
+    } else if (showingLogo && (!redrawScreen)) {
+        // Only handle menu inputs when we're in 'idle' mode...
+        static Debouncer s1(S1_INPUT);
+        if (s1.poll()) {
+            drawMenu(MENU_NEXT);
+        }
+
+        static Debouncer s2(S2_INPUT);
+        if (s2.poll()) {
+            drawMenu(MENU_OK);
+        }
     }
 }
 
