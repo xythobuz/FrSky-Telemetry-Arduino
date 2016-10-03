@@ -15,13 +15,13 @@
 #define __CONFIG_H__
 
 #define CONFIG_STRING_LENGTH 6
-const char versionString[CONFIG_STRING_LENGTH] = "1.1.1";
+const char versionString[CONFIG_STRING_LENGTH] = "1.1.2";
 
 // Shown on splash screen but not stored in EEPROM
-#define PATCH_LEVEL_STRING "02"
+#define PATCH_LEVEL_STRING "01"
 
 struct ConfigData {
-    int16_t warningVoltage, alarmVoltage;
+    int16_t noWarnVoltage, warningVoltage, alarmVoltage;
     uint8_t ledBrightness;
     char versionString[CONFIG_STRING_LENGTH];
 };

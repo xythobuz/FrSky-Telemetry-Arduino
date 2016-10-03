@@ -20,11 +20,13 @@
 
 #define MENU_STATE_NONE 0
 #define MENU_STATE_MAIN 1
-#define MENU_STATE_WARNING 2
-#define MENU_STATE_ALARM 3
-#define MENU_STATE_BRIGHT 4
-#define MENU_STATES 5
+#define MENU_STATE_NOWARN 2
+#define MENU_STATE_WARNING 3
+#define MENU_STATE_ALARM 4
+#define MENU_STATE_BRIGHT 5
+#define MENU_STATES 6
 
+extern int16_t noWarnVoltage;
 extern int16_t warningVoltage;
 extern int16_t alarmVoltage;
 extern uint8_t ledBrightness;
@@ -49,11 +51,37 @@ uint8_t drawMainMenu(uint8_t input) {
     clear_display();
     writeLine(1, "FrSky Telemetry");
     writeLine(2, "Configuration:");
-    writeLine(4, ((index == 0) ? String("*") : String(" ")) + " Warning Volt");
-    writeLine(5, ((index == 1) ? String("*") : String(" ")) + " Alarm Volt");
-    writeLine(6, ((index == 2) ? String("*") : String(" ")) + " LED Brightness");
-    writeLine(7, ((index == 3) ? String("*") : String(" ")) + " Exit Menu");
+    writeLine(3, ((index == 0) ? String("*") : String(" ")) + " No Warn Volt");
+    writeLine(4, ((index == 1) ? String("*") : String(" ")) + " Warning Volt");
+    writeLine(5, ((index == 2) ? String("*") : String(" ")) + " Alarm Volt");
+    writeLine(6, ((index == 3) ? String("*") : String(" ")) + " LED Brightness");
+    writeLine(7, ((index == 4) ? String("*") : String(" ")) + " Exit Menu");
 
+    return 0;
+}
+
+uint8_t drawNoWarnMenu(uint8_t input) {
+    static int16_t startValue = 0;
+
+    if (input == MENU_NEXT) {
+        if (noWarnVoltage < MENU_NOWARN_MAX) {
+            noWarnVoltage += MENU_NOWARN_INC;
+        } else {
+            noWarnVoltage = MENU_NOWARN_MIN;
+        }
+    } else if (input == MENU_OK) {
+        if (noWarnVoltage != startValue) {
+            writeConfig();
+        }
+        return 1;
+    } else if (input == MENU_NONE) {
+        startValue = noWarnVoltage;
+    }
+
+    clear_display();
+    writeLine(1, "FrSky Telemetry");
+    writeLine(2, "No-Warn Volt:");
+    writeLine(5, voltageToString(noWarnVoltage));
     return 0;
 }
 
@@ -171,6 +199,11 @@ void drawMenu(uint8_t input) {
         }
     } else if (state == MENU_STATE_BRIGHT) {
         if (drawBrightMenu(input)) {
+            state = MENU_STATE_MAIN;
+            drawMainMenu(MENU_NONE);
+        }
+    } else if (state == MENU_STATE_NOWARN) {
+        if (drawNoWarnMenu(input)) {
             state = MENU_STATE_MAIN;
             drawMainMenu(MENU_NONE);
         }

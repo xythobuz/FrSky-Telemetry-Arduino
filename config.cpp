@@ -16,6 +16,7 @@
 #include "config.h"
 #include "led.h"
 
+extern int16_t noWarnVoltage;
 extern int16_t warningVoltage;
 extern int16_t alarmVoltage;
 extern uint8_t ledBrightness;
@@ -40,6 +41,7 @@ void readConfig(void) {
         }
 
         if (match) {
+            noWarnVoltage = d.noWarnVoltage;
             warningVoltage = d.warningVoltage;
             alarmVoltage = d.alarmVoltage;
             ledBrightness = d.ledBrightness;
@@ -51,6 +53,7 @@ void writeConfig(void) {
     setLED(ledBrightness);
 
     ConfigData d;
+    d.noWarnVoltage = noWarnVoltage;
     d.warningVoltage = warningVoltage;
     d.alarmVoltage = alarmVoltage;
     d.ledBrightness = ledBrightness;

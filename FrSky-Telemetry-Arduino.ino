@@ -31,6 +31,7 @@ int16_t voltageBattery = 0;
 uint8_t analog1 = 0;
 uint8_t analog2 = 0;
 String userDataString = "";
+int16_t noWarnVoltage = BATTERY_MIN_WARN_LEVEL;
 int16_t warningVoltage = BATTERY_LOW_WARN_LEVEL;
 int16_t alarmVoltage = BATTERY_HIGH_WARN_LEVEL;
 uint8_t ledBrightness = LED_PWM;
@@ -136,7 +137,7 @@ void loop(void) {
 
     if (!showingLogo) {
         // Enable battery alarm beeper as required
-        if (voltageBattery > BATTERY_MIN_WARN_LEVEL) {
+        if (voltageBattery > noWarnVoltage) {
             if (voltageBattery > warningVoltage) {
                 setBeeper(BEEPER_STATE_OFF);
             } else if (voltageBattery > alarmVoltage) {
