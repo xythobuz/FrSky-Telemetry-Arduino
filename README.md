@@ -2,6 +2,10 @@
 
 I've modified my RC transmitter by adding an [Arduino Pro Mini](https://www.arduino.cc/en/Main/ArduinoBoardProMini) with [this HobbyKing 0.96" OLED](http://www.hobbyking.com/hobbyking/store/__46373__Multiwii_OLED_Display_Module_I2C_128x64_Dot_MWC_.html).
 
+[![Photo 1](http://i.imgur.com/Uuro1FN.png)](http://i.imgur.com/U6wNsI4.jpg)
+[![Photo 2](http://i.imgur.com/MOI2jv5.png)](http://i.imgur.com/cExsBPu.jpg)
+[![Photo 3](http://i.imgur.com/ve6bCwT.png)](http://i.imgur.com/C18T33u.jpg)
+
 Unfortunately, this display isn't really standard-conformant, so I had to resort to using the only library I've found that get's it to work: [this one from the HobbyKing comments](http://www.hobbyking.com/hobbyking/store/uploads/121771368X1172162X54.zip).
 
 The FrSky protocol parsing code has been included from my previous [Saitek-X52 USB to PPM converter project](https://github.com/xythobuz/Saitek-X52-PPM).
