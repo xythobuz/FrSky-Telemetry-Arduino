@@ -10,9 +10,13 @@ The Battery voltage calculated and displayed is, of course, only applicable to m
 
 You can connect a simple Piezo Buzzer to Pin 4 and an active-high LED to Pin 3, they will also sound or light-up with voltage alarms. Connect a pushbutton to each of Pin 8 and 9 to control the built-in menu and change configuration options on-the-fly.
 
+[![Fritzing Schematic](https://i.imgur.com/pa8UJW8.png)](https://i.imgur.com/4W3O9zr.png)
+
 ## Replacing the Boot Logo
 
 You can also easily replace the included boot logo. It can be converted, from a PNG image to the required C-Header file format, by using the included `icon/convert.py` utility. It depends on [pypng](https://pypi.python.org/pypi/pypng). Simply call the `icon/update.sh` script to automatically replace `logo.h` with the contents of `icon/icon.png`.
+
+![Included Logo](https://raw.githubusercontent.com/xythobuz/FrSky-Telemetry-Arduino/master/icon/icon.png)
 
 ## Licensing
 
