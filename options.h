@@ -30,10 +30,10 @@
 // How to calculate battery voltage from analog value (a1 or a2)
 // Voltage is stored with factor 100, so 430 -> 4.30V
 #define BATTERY_ANALOG a2
-#define BATTERY_VALUE_MIN 207
-#define BATTERY_VALUE_MAX 254
-#define BATTERY_VOLTAGE_MIN 350
-#define BATTERY_VOLTAGE_MAX 430
+#define BATTERY_VALUE_MIN 235
+#define BATTERY_VOLTAGE_MIN 387
+#define BATTERY_VALUE_MAX 251
+#define BATTERY_VOLTAGE_MAX 415
 
 // How often to refresh display at most (in ms)
 #define DISPLAY_MAX_UPDATE_RATE 10

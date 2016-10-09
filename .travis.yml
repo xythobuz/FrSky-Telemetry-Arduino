@@ -1,0 +1,25 @@
+language: python
+python:
+    - "2.7"
+
+sudo: false
+cache:
+    directories:
+        - "~/.platformio"
+
+env:
+    - PLATFORMIO_CI_SRC=.
+
+install:
+    - pip install -U platformio
+    - platformio lib -g install "TimerOne"
+
+script:
+    - platformio ci --board=uno
+
+notifications:
+  email:
+    recipients:
+      - xythobuz@xythobuz.de
+    on_success: never
+
