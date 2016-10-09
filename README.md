@@ -1,5 +1,7 @@
 # Arduino FrSky Telemetry Display
 
+[![Build Status](https://travis-ci.org/xythobuz/FrSky-Telemetry-Arduino.svg?branch=master)](https://travis-ci.org/xythobuz/FrSky-Telemetry-Arduino)
+
 I've modified my RC transmitter by adding an [Arduino Pro Mini](https://www.arduino.cc/en/Main/ArduinoBoardProMini) with [this HobbyKing 0.96" OLED](http://www.hobbyking.com/hobbyking/store/__46373__Multiwii_OLED_Display_Module_I2C_128x64_Dot_MWC_.html).
 
 [![Photo 1](http://i.imgur.com/Uuro1FN.png)](http://i.imgur.com/U6wNsI4.jpg)
