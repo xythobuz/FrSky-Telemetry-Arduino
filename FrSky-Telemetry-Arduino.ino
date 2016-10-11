@@ -63,15 +63,22 @@ void drawInfoScreen(void) {
     writeLine(7, voltageToString(alarmVoltage));
 }
 
+#define PASTER(x,y) x ## y
+#define EVALUATOR(x,y)  PASTER(x,y)
+#define NAME(fun) EVALUATOR(fun, BATTERY_ANALOG)
+
 void dataHandler(uint8_t a1, uint8_t a2, uint8_t q1, uint8_t q2) {
     redrawScreen = 1;
 
+    // Low-Pass Filter for voltages
+    analog1 = (((analog1 << BATTERY_FILTER_BETA) - analog1) + a1) >> BATTERY_FILTER_BETA;
+    analog2 = (((analog2 << BATTERY_FILTER_BETA) - analog2) + a2) >> BATTERY_FILTER_BETA;
+
     rssiRx = map(q1, 0, 255, 0, 100);
     rssiTx = map(q2, 0, 255, 0, 100);
-    voltageBattery = map(BATTERY_ANALOG, BATTERY_VALUE_MIN, BATTERY_VALUE_MAX,
+
+    voltageBattery = map(NAME(analog), BATTERY_VALUE_MIN, BATTERY_VALUE_MAX,
             BATTERY_VOLTAGE_MIN, BATTERY_VOLTAGE_MAX);
-    analog1 = a1;
-    analog2 = a2;
 }
 
 void alarmThresholdHandler(FrSky::AlarmThreshold alarm) {

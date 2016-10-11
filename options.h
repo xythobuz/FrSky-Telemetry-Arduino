@@ -29,11 +29,11 @@
 
 // How to calculate battery voltage from analog value (a1 or a2)
 // Voltage is stored with factor 100, so 430 -> 4.30V
-#define BATTERY_ANALOG a2
-#define BATTERY_VALUE_MIN 235
-#define BATTERY_VOLTAGE_MIN 387
-#define BATTERY_VALUE_MAX 251
-#define BATTERY_VOLTAGE_MAX 415
+#define BATTERY_ANALOG 2
+#define BATTERY_VALUE_MIN 231
+#define BATTERY_VOLTAGE_MIN 388
+#define BATTERY_VALUE_MAX 250
+#define BATTERY_VOLTAGE_MAX 417
 
 // How often to refresh display at most (in ms)
 #define DISPLAY_MAX_UPDATE_RATE 10
@@ -52,6 +52,9 @@
 #define BATTERY_LOW_WARN_ON 100
 #define BATTERY_HIGH_WARN_OFF 100
 #define BATTERY_HIGH_WARN_ON 200
+
+// Low pass filter for analog voltages (higher = more filtering)
+#define BATTERY_FILTER_BETA 2
 
 // Frequency for different buzzer sounds (in hz)
 #define INIT_FREQ 440
