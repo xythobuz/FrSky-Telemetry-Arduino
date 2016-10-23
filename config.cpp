@@ -16,9 +16,9 @@
 #include "config.h"
 #include "led.h"
 
-extern int16_t noWarnVoltage;
-extern int16_t warningVoltage;
-extern int16_t alarmVoltage;
+extern int16_t noWarnVoltage[MODEL_COUNT];
+extern int16_t warningVoltage[MODEL_COUNT];
+extern int16_t alarmVoltage[MODEL_COUNT];
 extern uint8_t ledBrightness;
 
 void readConfig(void) {
@@ -40,10 +40,16 @@ void readConfig(void) {
             }
         }
 
+        if (d.modelCount != MODEL_COUNT) {
+            match = 0;
+        }
+
         if (match) {
-            noWarnVoltage = d.noWarnVoltage;
-            warningVoltage = d.warningVoltage;
-            alarmVoltage = d.alarmVoltage;
+            for (int i = 0; i < MODEL_COUNT; i++) {
+                noWarnVoltage[i] = d.noWarnVoltage[i];
+                warningVoltage[i] = d.warningVoltage[i];
+                alarmVoltage[i] = d.alarmVoltage[i];
+            }
             ledBrightness = d.ledBrightness;
         }
     }
@@ -53,9 +59,12 @@ void writeConfig(void) {
     setLED(ledBrightness);
 
     ConfigData d;
-    d.noWarnVoltage = noWarnVoltage;
-    d.warningVoltage = warningVoltage;
-    d.alarmVoltage = alarmVoltage;
+    d.modelCount = MODEL_COUNT;
+    for (int i = 0; i < MODEL_COUNT; i++) {
+        d.noWarnVoltage[i] = noWarnVoltage[i];
+        d.warningVoltage[i] = warningVoltage[i];
+        d.alarmVoltage[i] = alarmVoltage[i];
+    }
     d.ledBrightness = ledBrightness;
     for (int i = 0; i < CONFIG_STRING_LENGTH; i++) {
         d.versionString[i] = versionString[i];

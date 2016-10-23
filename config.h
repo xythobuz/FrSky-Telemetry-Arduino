@@ -14,14 +14,19 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#include "options.h"
+
 #define CONFIG_STRING_LENGTH 6
-const char versionString[CONFIG_STRING_LENGTH] = "1.1.2";
+const char versionString[CONFIG_STRING_LENGTH] = "1.2.0";
 
 // Shown on splash screen but not stored in EEPROM
 #define PATCH_LEVEL_STRING "01"
 
 struct ConfigData {
-    int16_t noWarnVoltage, warningVoltage, alarmVoltage;
+    uint8_t modelCount;
+    int16_t noWarnVoltage[MODEL_COUNT];
+    int16_t warningVoltage[MODEL_COUNT];
+    int16_t alarmVoltage[MODEL_COUNT];
     uint8_t ledBrightness;
     char versionString[CONFIG_STRING_LENGTH];
 };

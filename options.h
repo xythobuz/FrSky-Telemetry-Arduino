@@ -27,13 +27,32 @@
 #define LED_PWM 15
 #define TIMER_FREQUENCY 50
 
+// Number of models that can be selected
+#define MODEL_COUNT 2
+
+// Names have to fit screen (15 chars)
+const static String modelName[MODEL_COUNT] = {
+    "Micro Copter",
+    "Flying Wing"
+};
+
 // How to calculate battery voltage from analog value (a1 or a2)
 // Voltage is stored with factor 100, so 430 -> 4.30V
-#define BATTERY_ANALOG 2
-#define BATTERY_VALUE_MIN 231
-#define BATTERY_VOLTAGE_MIN 388
-#define BATTERY_VALUE_MAX 250
-#define BATTERY_VOLTAGE_MAX 417
+const static uint8_t batteryAnalogs[MODEL_COUNT] = {
+    2, 2
+};
+const static int16_t batteryValuesMin[MODEL_COUNT] = {
+    231, 169
+};
+const static int16_t batteryVoltagesMin[MODEL_COUNT] = {
+    388, 900
+};
+const static int16_t batteryValuesMax[MODEL_COUNT] = {
+    250, 239
+};
+const static int16_t batteryVoltagesMax[MODEL_COUNT] = {
+    417, 1260
+};
 
 // How often to refresh display at most (in ms)
 #define DISPLAY_MAX_UPDATE_RATE 10
@@ -42,10 +61,16 @@
 #define DISPLAY_REVERT_LOGO_TIME 2500
 #define DISPLAY_SHOW_INFO_SCREEN 1500
 
-// When to sound the voltage alarm. Don't warn below MIN_WARN_LEVEL.
-#define BATTERY_MIN_WARN_LEVEL 100
-#define BATTERY_LOW_WARN_LEVEL 327
-#define BATTERY_HIGH_WARN_LEVEL 322
+// When to sound the voltage alarm. Don't warn below batteryMinWarnLevel.
+const static int16_t batteryMinWarnLevel[MODEL_COUNT] = {
+    100, 500
+};
+const static int16_t batteryLowWarnLevel[MODEL_COUNT] = {
+    327, 1050
+};
+const static int16_t batteryHighWarnLevel[MODEL_COUNT] = {
+    322, 1030
+};
 
 // Time for beeps for different alarm levels (in ms)
 #define BATTERY_LOW_WARN_OFF 250

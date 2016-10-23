@@ -30,11 +30,13 @@ int16_t rssiTx = 0;
 int16_t voltageBattery = 0;
 uint8_t analog1 = 0;
 uint8_t analog2 = 0;
+uint8_t analogs[2] = { 0, 0 };
 String userDataString = "";
-int16_t noWarnVoltage = BATTERY_MIN_WARN_LEVEL;
-int16_t warningVoltage = BATTERY_LOW_WARN_LEVEL;
-int16_t alarmVoltage = BATTERY_HIGH_WARN_LEVEL;
+int16_t noWarnVoltage[MODEL_COUNT];
+int16_t warningVoltage[MODEL_COUNT];
+int16_t alarmVoltage[MODEL_COUNT];
 uint8_t ledBrightness = LED_PWM;
+uint8_t currentModel = 0;
 
 // Print battery voltage with dot (-402 -> -4.02V)
 String voltageToString(int16_t voltage) {
@@ -57,15 +59,11 @@ void drawInfoScreen(void) {
     writeLine(1, "Version: " + String(versionString));
     writeLine(2, "Patch Level: " + String(PATCH_LEVEL_STRING));
     writeLine(3, "by xythobuz.de");
-    writeLine(4, "Warning Volt:");
-    writeLine(5, voltageToString(warningVoltage));
-    writeLine(6, "Alarm Volt:");
-    writeLine(7, voltageToString(alarmVoltage));
+    writeLine(4, "Model Storage:");
+    writeLine(5, String(MODEL_COUNT));
+    writeLine(6, "Licensing:");
+    writeLine(7, "Beer Ware :)");
 }
-
-#define PASTER(x,y) x ## y
-#define EVALUATOR(x,y)  PASTER(x,y)
-#define NAME(fun) EVALUATOR(fun, BATTERY_ANALOG)
 
 void dataHandler(uint8_t a1, uint8_t a2, uint8_t q1, uint8_t q2) {
     redrawScreen = 1;
@@ -77,8 +75,12 @@ void dataHandler(uint8_t a1, uint8_t a2, uint8_t q1, uint8_t q2) {
     rssiRx = map(q1, 0, 255, 0, 100);
     rssiTx = map(q2, 0, 255, 0, 100);
 
-    voltageBattery = map(NAME(analog), BATTERY_VALUE_MIN, BATTERY_VALUE_MAX,
-            BATTERY_VOLTAGE_MIN, BATTERY_VOLTAGE_MAX);
+    analogs[0] = analog1;
+    analogs[1] = analog2;
+
+    voltageBattery = map(analogs[batteryAnalogs[currentModel] - 1],
+            batteryValuesMin[currentModel], batteryValuesMax[currentModel],
+            batteryVoltagesMin[currentModel], batteryVoltagesMax[currentModel]);
 }
 
 void alarmThresholdHandler(FrSky::AlarmThreshold alarm) {
@@ -95,6 +97,12 @@ void userDataHandler(const uint8_t* buf, uint8_t len) {
 }
 
 void setup(void) {
+    for (int i = 0; i < MODEL_COUNT; i++) {
+        noWarnVoltage[i] = batteryMinWarnLevel[i];
+        warningVoltage[i] = batteryLowWarnLevel[i];
+        alarmVoltage[i] = batteryHighWarnLevel[i];
+    }
+
     delay(200);
 
     pinMode(BEEPER_OUTPUT, OUTPUT);
@@ -144,10 +152,10 @@ void loop(void) {
 
     if (!showingLogo) {
         // Enable battery alarm beeper as required
-        if (voltageBattery > noWarnVoltage) {
-            if (voltageBattery > warningVoltage) {
+        if (voltageBattery > noWarnVoltage[currentModel]) {
+            if (voltageBattery > warningVoltage[currentModel]) {
                 setBeeper(BEEPER_STATE_OFF);
-            } else if (voltageBattery > alarmVoltage) {
+            } else if (voltageBattery > alarmVoltage[currentModel]) {
                 setBeeper(BEEPER_STATE_LOW);
             } else {
                 setBeeper(BEEPER_STATE_HIGH);

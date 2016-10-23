@@ -26,10 +26,11 @@
 #define MENU_STATE_BRIGHT 5
 #define MENU_STATES 6
 
-extern int16_t noWarnVoltage;
-extern int16_t warningVoltage;
-extern int16_t alarmVoltage;
+extern int16_t noWarnVoltage[MODEL_COUNT];
+extern int16_t warningVoltage[MODEL_COUNT];
+extern int16_t alarmVoltage[MODEL_COUNT];
 extern uint8_t ledBrightness;
+extern uint8_t currentModel;
 
 String voltageToString(int16_t voltage);
 
@@ -64,24 +65,24 @@ uint8_t drawNoWarnMenu(uint8_t input) {
     static int16_t startValue = 0;
 
     if (input == MENU_NEXT) {
-        if (noWarnVoltage < MENU_NOWARN_MAX) {
-            noWarnVoltage += MENU_NOWARN_INC;
+        if (noWarnVoltage[currentModel] < MENU_NOWARN_MAX) {
+            noWarnVoltage[currentModel] += MENU_NOWARN_INC;
         } else {
-            noWarnVoltage = MENU_NOWARN_MIN;
+            noWarnVoltage[currentModel] = MENU_NOWARN_MIN;
         }
     } else if (input == MENU_OK) {
-        if (noWarnVoltage != startValue) {
+        if (noWarnVoltage[currentModel] != startValue) {
             writeConfig();
         }
         return 1;
     } else if (input == MENU_NONE) {
-        startValue = noWarnVoltage;
+        startValue = noWarnVoltage[currentModel];
     }
 
     clear_display();
     writeLine(1, "FrSky Telemetry");
     writeLine(2, "No-Warn Volt:");
-    writeLine(5, voltageToString(noWarnVoltage));
+    writeLine(5, voltageToString(noWarnVoltage[currentModel]));
     return 0;
 }
 
@@ -89,24 +90,24 @@ uint8_t drawWarningMenu(uint8_t input) {
     static int16_t startValue = 0;
 
     if (input == MENU_NEXT) {
-        if (warningVoltage < MENU_ALARM_MAX) {
-            warningVoltage += MENU_ALARM_INC;
+        if (warningVoltage[currentModel] < MENU_ALARM_MAX) {
+            warningVoltage[currentModel] += MENU_ALARM_INC;
         } else {
-            warningVoltage = MENU_ALARM_MIN;
+            warningVoltage[currentModel] = MENU_ALARM_MIN;
         }
     } else if (input == MENU_OK) {
-        if (warningVoltage != startValue) {
+        if (warningVoltage[currentModel] != startValue) {
             writeConfig();
         }
         return 1;
     } else if (input == MENU_NONE) {
-        startValue = warningVoltage;
+        startValue = warningVoltage[currentModel];
     }
 
     clear_display();
     writeLine(1, "FrSky Telemetry");
     writeLine(2, "Warning Volt:");
-    writeLine(5, voltageToString(warningVoltage));
+    writeLine(5, voltageToString(warningVoltage[currentModel]));
     return 0;
 }
 
@@ -114,24 +115,24 @@ uint8_t drawAlarmMenu(uint8_t input) {
     static int16_t startValue = 0;
 
     if (input == MENU_NEXT) {
-        if (alarmVoltage < MENU_ALARM_MAX) {
-            alarmVoltage += MENU_ALARM_INC;
+        if (alarmVoltage[currentModel] < MENU_ALARM_MAX) {
+            alarmVoltage[currentModel] += MENU_ALARM_INC;
         } else {
-            alarmVoltage = MENU_ALARM_MIN;
+            alarmVoltage[currentModel] = MENU_ALARM_MIN;
         }
     } else if (input == MENU_OK) {
-        if (alarmVoltage != startValue) {
+        if (alarmVoltage[currentModel] != startValue) {
             writeConfig();
         }
         return 1;
     } else if (input == MENU_NONE) {
-        startValue = alarmVoltage;
+        startValue = alarmVoltage[currentModel];
     }
 
     clear_display();
     writeLine(1, "FrSky Telemetry");
     writeLine(2, "Alarm Volt:");
-    writeLine(5, voltageToString(alarmVoltage));
+    writeLine(5, voltageToString(alarmVoltage[currentModel]));
     return 0;
 }
 
@@ -168,6 +169,20 @@ void drawMenu(uint8_t input) {
         if (input == MENU_OK) {
             state = MENU_STATE_MAIN;
             input = MENU_NONE;
+#if defined(MODEL_COUNT) && (MODEL_COUNT > 1)
+        } else if (input == MENU_NEXT) {
+            // Roll through models if enabled
+            if (currentModel < (MODEL_COUNT - 1)) {
+                currentModel++;
+            } else {
+                currentModel = 0;
+            }
+
+            writeLine(2, "Model " + String(currentModel + 1) + " active");
+            if (modelName[currentModel].length() > 0) {
+                writeLine(3, modelName[currentModel]);
+            }
+#endif // defined(MODEL_COUNT) && (MODEL_COUNT > 1)
         }
     }
 
