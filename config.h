@@ -20,7 +20,7 @@
 const char versionString[CONFIG_STRING_LENGTH] = "1.2.0";
 
 // Shown on splash screen but not stored in EEPROM
-#define PATCH_LEVEL_STRING "01"
+#define PATCH_LEVEL_STRING "02"
 
 struct ConfigData {
     uint8_t modelCount;
@@ -33,7 +33,9 @@ struct ConfigData {
 
 #define CONFIG_DATA_LENGTH (sizeof(ConfigData))
 
-void readConfig(void);
+// Return 0 on ok, 1 on checksum error, 2 on version error, 3 on model count error
+uint8_t readConfig(void);
+
 void writeConfig(void);
 
 #endif

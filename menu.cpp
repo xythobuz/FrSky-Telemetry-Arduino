@@ -26,6 +26,7 @@
 #define MENU_STATE_BRIGHT 5
 #define MENU_STATES 6
 
+extern uint8_t showingLogo;
 extern int16_t noWarnVoltage[MODEL_COUNT];
 extern int16_t warningVoltage[MODEL_COUNT];
 extern int16_t alarmVoltage[MODEL_COUNT];
@@ -51,7 +52,7 @@ uint8_t drawMainMenu(uint8_t input) {
 
     clear_display();
     writeLine(1, "FrSky Telemetry");
-    writeLine(2, "Configuration:");
+    writeLine(2, "Menu (Model " + String(currentModel + 1) + ")");
     writeLine(3, ((index == 0) ? String("*") : String(" ")) + " No Warn Volt");
     writeLine(4, ((index == 1) ? String("*") : String(" ")) + " Warning Volt");
     writeLine(5, ((index == 2) ? String("*") : String(" ")) + " Alarm Volt");
@@ -90,10 +91,10 @@ uint8_t drawWarningMenu(uint8_t input) {
     static int16_t startValue = 0;
 
     if (input == MENU_NEXT) {
-        if (warningVoltage[currentModel] < MENU_ALARM_MAX) {
-            warningVoltage[currentModel] += MENU_ALARM_INC;
+        if (warningVoltage[currentModel] < menuOptionMaximum[currentModel]) {
+            warningVoltage[currentModel] += menuOptionIncrease[currentModel];
         } else {
-            warningVoltage[currentModel] = MENU_ALARM_MIN;
+            warningVoltage[currentModel] = menuOptionMinimum[currentModel];
         }
     } else if (input == MENU_OK) {
         if (warningVoltage[currentModel] != startValue) {
@@ -115,10 +116,10 @@ uint8_t drawAlarmMenu(uint8_t input) {
     static int16_t startValue = 0;
 
     if (input == MENU_NEXT) {
-        if (alarmVoltage[currentModel] < MENU_ALARM_MAX) {
-            alarmVoltage[currentModel] += MENU_ALARM_INC;
+        if (alarmVoltage[currentModel] < menuOptionMaximum[currentModel]) {
+            alarmVoltage[currentModel] += menuOptionIncrease[currentModel];
         } else {
-            alarmVoltage[currentModel] = MENU_ALARM_MIN;
+            alarmVoltage[currentModel] = menuOptionMinimum[currentModel];
         }
     } else if (input == MENU_OK) {
         if (alarmVoltage[currentModel] != startValue) {
@@ -170,6 +171,10 @@ void drawMenu(uint8_t input) {
             state = MENU_STATE_MAIN;
             input = MENU_NONE;
 #if defined(MODEL_COUNT) && (MODEL_COUNT > 1)
+            // Prevent auto screen-clear on new user input
+            if (showingLogo == 5) {
+                showingLogo = 1;
+            }
         } else if (input == MENU_NEXT) {
             // Roll through models if enabled
             if (currentModel < (MODEL_COUNT - 1)) {
@@ -182,6 +187,9 @@ void drawMenu(uint8_t input) {
             if (modelName[currentModel].length() > 0) {
                 writeLine(3, modelName[currentModel]);
             }
+
+            // Signal main-loop to clear text after a while
+            showingLogo = 4;
 #endif // defined(MODEL_COUNT) && (MODEL_COUNT > 1)
         }
     }

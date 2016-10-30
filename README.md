@@ -15,6 +15,7 @@ The FrSky protocol parsing code has been included from my previous [Saitek-X52 U
 The Battery voltage calculated and displayed is, of course, only applicable to my specific model. You can easily change the formulas used.
 
 You can connect a simple Piezo Buzzer to Pin 4 and an active-high LED to Pin 3, they will also sound or light-up with voltage alarms. Connect a pushbutton to each of Pin 8 and 9 to control the built-in menu and change configuration options on-the-fly.
+This also allows selecting between multiple models, each with its own warning/alarm voltages and conversion factors.
 
 [![Fritzing Schematic](https://i.imgur.com/pa8UJW8.png)](https://i.imgur.com/4W3O9zr.png)
 

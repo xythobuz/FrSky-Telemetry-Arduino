@@ -21,7 +21,7 @@ extern int16_t warningVoltage[MODEL_COUNT];
 extern int16_t alarmVoltage[MODEL_COUNT];
 extern uint8_t ledBrightness;
 
-void readConfig(void) {
+uint8_t readConfig(void) {
     ConfigData d;
     uint8_t *buffer = (uint8_t *)((void *)&d);
     uint8_t checksum = 0;
@@ -41,7 +41,7 @@ void readConfig(void) {
         }
 
         if (d.modelCount != MODEL_COUNT) {
-            match = 0;
+            return 3; // invalid model count
         }
 
         if (match) {
@@ -51,8 +51,14 @@ void readConfig(void) {
                 alarmVoltage[i] = d.alarmVoltage[i];
             }
             ledBrightness = d.ledBrightness;
+        } else {
+            return 2; // version not matching
         }
+    } else {
+        return 1; // checksum error
     }
+
+    return 0;
 }
 
 void writeConfig(void) {

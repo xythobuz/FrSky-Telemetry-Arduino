@@ -31,14 +31,14 @@ int16_t voltageBattery = 0;
 uint8_t analog1 = 0;
 uint8_t analog2 = 0;
 uint8_t analogs[2] = { 0, 0 };
-String userDataString = "";
+String userDataString = "None Received";
 int16_t noWarnVoltage[MODEL_COUNT];
 int16_t warningVoltage[MODEL_COUNT];
 int16_t alarmVoltage[MODEL_COUNT];
 uint8_t ledBrightness = LED_PWM;
 uint8_t currentModel = 0;
 
-// Print battery voltage with dot (-402 -> -4.02V)
+// Print battery voltage with dot (-402 -> "-4.02V")
 String voltageToString(int16_t voltage) {
     String volt = String(abs(voltage) / 100);
     String fract = String(abs(voltage) % 100);
@@ -54,15 +54,28 @@ String voltageToString(int16_t voltage) {
     return s;
 }
 
-void drawInfoScreen(void) {
+void drawInfoScreen(uint8_t conf) {
+    String state;
+    if (conf == 0) {
+        state = "OK";
+    } else if (conf == 1) {
+        state = "Checksum Error";
+    } else if (conf == 2) {
+        state = "Wrong Version";
+    } else if (conf == 3) {
+        state = "Invalid Models";
+    } else {
+        state = "Unknown";
+    }
+
     writeLine(0, "FrSky Telemetry");
     writeLine(1, "Version: " + String(versionString));
     writeLine(2, "Patch Level: " + String(PATCH_LEVEL_STRING));
-    writeLine(3, "by xythobuz.de");
-    writeLine(4, "Model Storage:");
-    writeLine(5, String(MODEL_COUNT));
+    writeLine(3, "www.xythobuz.de");
+    writeLine(4, "EEPROM Config:");
+    writeLine(5, state + "!");
     writeLine(6, "Licensing:");
-    writeLine(7, "Beer Ware :)");
+    writeLine(7, "Beer Ware *\\0/*");
 }
 
 void dataHandler(uint8_t a1, uint8_t a2, uint8_t q1, uint8_t q2) {
@@ -97,48 +110,73 @@ void userDataHandler(const uint8_t* buf, uint8_t len) {
 }
 
 void setup(void) {
+    // Initialize with default values (can be changed with EEPROM contents)
     for (int i = 0; i < MODEL_COUNT; i++) {
         noWarnVoltage[i] = batteryMinWarnLevel[i];
         warningVoltage[i] = batteryLowWarnLevel[i];
         alarmVoltage[i] = batteryHighWarnLevel[i];
     }
 
+    // Wait a bit before beeping for the first time, so there's no confusion with
+    // the initialization beep of the FrSky TX module
     delay(200);
 
+    // Set output pin directions
     pinMode(BEEPER_OUTPUT, OUTPUT);
     pinMode(LED_OUTPUT, OUTPUT);
     pinMode(S1_INPUT, INPUT);
     pinMode(S2_INPUT, INPUT);
+
+    // Pull ups for push buttons enabled
     digitalWrite(S1_INPUT, HIGH);
     digitalWrite(S2_INPUT, HIGH);
+
+    // Initialization beep
     tone(BEEPER_OUTPUT, INIT_FREQ);
 
     initLED();
     setLED(ledBrightness);
 
+    // Initialize hardware
     Serial.begin(BAUDRATE);
     i2c_init();
     i2c_OLED_init();
-
     clear_display();
     delay(50);
     i2c_OLED_send_cmd(0x20);
     i2c_OLED_send_cmd(0x02);
     i2c_OLED_send_cmd(0xA6);
 
-    readConfig();
-    drawInfoScreen();
+    // Read initial EEPROM config, draw splash screen
+    uint8_t ret = readConfig();
+    drawInfoScreen(ret);
+
+    // Disable Beeper and LED, wait to show splash screen
     noTone(BEEPER_OUTPUT);
     setLED(0);
     delay(DISPLAY_SHOW_INFO_SCREEN);
 
+    // Show logo and initialize state machine
     drawLogo(bootLogo);
     showingLogo = 1;
 
+#if defined(MODEL_COUNT) && (MODEL_COUNT > 1)
+    // Show initial model selection, if multiple models are enabled
+    writeLine(2, "Model " + String(currentModel + 1) + " active");
+    if (modelName[currentModel].length() > 0) {
+        writeLine(3, modelName[currentModel]);
+    }
+
+    // Signal main-loop to clear text after a while
+    showingLogo = 4;
+#endif // defined(MODEL_COUNT) && (MODEL_COUNT > 1)
+
+    // Handler functions receiving the telemetry data
     frsky.setDataHandler(&dataHandler);
     frsky.setAlarmThresholdHandler(&alarmThresholdHandler);
     frsky.setUserDataHandler(&userDataHandler);
 
+    // Second initialization beep and LED blink
     setLED(ledBrightness);
     tone(BEEPER_OUTPUT, INIT_FREQ);
     delay(100);
@@ -198,6 +236,14 @@ void loop(void) {
     } else if ((showingLogo == 3) && ((millis() - lastTime) > BATTERY_HIGH_WARN_ON)) {
         // Turn beeper off again after losing connection
         setBeeper(BEEPER_STATE_OFF);
+        showingLogo = 1;
+    } else if (showingLogo == 4) {
+        // New model has been selected, start 'timer' to overwrite text
+        lastTime = millis();
+        showingLogo = 5;
+    } else if ((showingLogo == 5) && ((millis() - lastTime) > DISPLAY_REVERT_LOGO_TIME)) {
+        // Reset, overwriting the model select text after a while
+        drawLogo(bootLogo);
         showingLogo = 1;
     } else if (showingLogo && (!redrawScreen)) {
         // Only handle menu inputs when we're in 'idle' mode...
